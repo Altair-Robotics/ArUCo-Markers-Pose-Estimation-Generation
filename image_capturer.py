@@ -2,7 +2,7 @@
 
 # importing OpenCV library
 import cv2
-import realsense2_camera as rs
+import pyrealsense2 as rs
 import numpy as np
 
 # initialize the camera
@@ -55,7 +55,7 @@ criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 while True:
 
-    succes, img = cap.read()
+    # succes, img = cap.read() ## For Webcam
 
     ### For realsense ###
     frames = pipeline.wait_for_frames()
@@ -66,28 +66,32 @@ while True:
     color_image = np.asanyarray(color_frame.get_data())
     ### For realsense ###
     
-    cv2.imshow('img',img)
+    
     k = cv2.waitKey(1)
         
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
     ret, corners = cv2.findChessboardCorners(gray, chessboardSize, None)
     # print(ret)
     
     if ret:	# if ret is True, opencv has successfully found the chessboard corners
-        temp_img = img.copy()
+        temp_img = color_image.copy()
         corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
-        cv2.drawChessboardCorners(temp_img, chessboardSize, corners2, ret)
-        cv2.imshow('Detected image', temp_img)
+        # cv2.drawChessboardCorners(temp_img, chessboardSize, corners2, ret)
+        # cv2.imshow('Detected image', temp_img)
+        cv2.drawChessboardCorners(color_image, chessboardSize, corners2, ret)
+        # cv2.imshow('Detected image', color_image)
+
 
     if k == 27: 
         break	# ends if ESC key is pressed 
     
     elif k == ord('s'): # wait for 's' key to save and exit
-        cv2.imwrite(f'{folder}/Image_{counter}.png', img)
+        cv2.imwrite(f'{folder}/Image_{counter}.png', color_image)
         print(f"{counter}image saved!")
         counter += 1
-        cv2.imshow('saved image',img)   
+        cv2.imshow('saved image',color_image)   
 
+    cv2.imshow('img',color_image)
 # Release and destroy all windows before termination
 cap.release()
 
