@@ -12,7 +12,7 @@ import argparse
 import time
 import pyrealsense2 as rs
 
-def pose_esitmation(frame, aruco_dict_type, matrix_coefficients, distortion_coefficients):
+def pose_esitmation(frame, dept_frame, aruco_dict_type, matrix_coefficients, distortion_coefficients):
 
     '''
     frame - Frame from the video stream
@@ -37,7 +37,17 @@ def pose_esitmation(frame, aruco_dict_type, matrix_coefficients, distortion_coef
             rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], 0.02, matrix_coefficients,
                                                                        distortion_coefficients)
             # Draw a square around the markers
-            cv2.aruco.drawDetectedMarkers(frame, corners, ids) 
+            cv2.aruco.drawDetectedMarkers(frame, corners, ids)
+
+            # Distance calculation of the center point
+            x_sum = corners[0][0][0][0]+ corners[0][0][1][0]+ corners[0][0][2][0]+ corners[0][0][3][0]
+            y_sum = corners[0][0][0][1]+ corners[0][0][1][1]+ corners[0][0][2][1]+ corners[0][0][3][1]
+                
+            x_centerPixel = x_sum*.25
+            y_centerPixel = y_sum*.25
+            aruco_marker_center = [int(x_centerPixel), int(y_centerPixel)]
+
+            print("ID:", ids[i], "pos: ", aruco_marker_center, "Distance: ", dept_frame.get_distance(aruco_marker_center[0], aruco_marker_center[1]))
 
             # Draw Axis
             cv2.drawFrameAxes(frame, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)  
@@ -109,13 +119,14 @@ if __name__ == '__main__':
         ### For realsense ###
         frames = pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
+        dept_frame = frames.get_depth_frame()
         if  not color_frame:
             continue
         
         color_image = np.asanyarray(color_frame.get_data())
         ### For realsense ###
 
-        output = pose_esitmation(color_image, aruco_dict_type, k, d) ## for realsense 
+        output = pose_esitmation(color_image, dept_frame, aruco_dict_type, k, d) ## for realsense 
         # output = pose_esitmation(frame, aruco_dict_type, k, d) ## for webcam
 
 
