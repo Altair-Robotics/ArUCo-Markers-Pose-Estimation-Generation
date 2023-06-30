@@ -35,6 +35,8 @@ if ARUCO_DICT.get(args["type"], None) is None:
 
 arucoDict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[args["type"]])
 arucoParams = cv2.aruco.DetectorParameters()
+# arucoParams = cv2.aruco.DetectorParameters_create()
+
 
 while True:
 	ret, frame = video.read()

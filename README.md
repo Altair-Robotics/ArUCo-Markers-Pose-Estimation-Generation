@@ -1,3 +1,10 @@
+# Use older version of opencv
+```
+pip uninstall opencv-python -y
+pip uninstall opencv-contrib-python -y
+pip install opencv-contrib-python==4.5.5.64
+```
+
 # Capturing Images for camera calibration
 
 This special image capturer is created because sometimes opencv will fail to detect chessboard corners

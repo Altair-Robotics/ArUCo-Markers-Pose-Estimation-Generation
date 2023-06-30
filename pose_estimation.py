@@ -10,7 +10,7 @@ import sys
 from utils import ARUCO_DICT
 import argparse
 import time
-
+import pyrealsense2 as rs
 
 def pose_esitmation(frame, aruco_dict_type, matrix_coefficients, distortion_coefficients):
 
@@ -25,7 +25,7 @@ def pose_esitmation(frame, aruco_dict_type, matrix_coefficients, distortion_coef
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(aruco_dict_type)
-    parameters = cv2.aruco.DetectorParameters()
+    parameters = cv2.aruco.DetectorParameters_create()
 
 
     corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict,parameters=parameters)
@@ -64,16 +64,60 @@ if __name__ == '__main__':
     k = np.load(calibration_matrix_path)
     d = np.load(distortion_coefficients_path)
 
-    video = cv2.VideoCapture(0)
+    # video = cv2.VideoCapture(0) ### For Webcam ###
+
     time.sleep(2.0)
+    ### For realsense ###
+    # Configure depth and color streams
+    pipeline = rs.pipeline()
+    config = rs.config()
+
+    # Get device product line for setting a supporting resolution
+    pipeline_wrapper = rs.pipeline_wrapper(pipeline)
+    pipeline_profile = config.resolve(pipeline_wrapper)
+    device = pipeline_profile.get_device()
+    device_product_line = str(device.get_info(rs.camera_info.product_line))
+
+    found_rgb = False
+    for s in device.sensors:
+        if s.get_info(rs.camera_info.name) == 'RGB Camera':
+            found_rgb = True
+            break
+    if not found_rgb:
+        print("The demo requires Depth camera with Color sensor")
+        exit(0)
+
+    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+
+    if device_product_line == 'L500':
+        config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
+    else:
+        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+    # Start streaming
+    pipeline.start(config)
+    ### For realsense ###
 
     while True:
-        ret, frame = video.read()
+        ### For Webcam ###
+        # ret, frame = video.read()
 
-        if not ret:
-            break
+        # if not ret:
+        #     break
+        ### For Webcam ###
         
-        output = pose_esitmation(frame, aruco_dict_type, k, d)
+        ### For realsense ###
+        frames = pipeline.wait_for_frames()
+        color_frame = frames.get_color_frame()
+        if  not color_frame:
+            continue
+        
+        color_image = np.asanyarray(color_frame.get_data())
+        ### For realsense ###
+
+        output = pose_esitmation(color_image, aruco_dict_type, k, d) ## for realsense 
+        # output = pose_esitmation(frame, aruco_dict_type, k, d) ## for webcam
+
 
         cv2.imshow('Estimated Pose', output)
 
@@ -81,5 +125,5 @@ if __name__ == '__main__':
         if key == ord('q'):
             break
 
-    video.release()
+    # video.release() ### For Webcam
     cv2.destroyAllWindows()
